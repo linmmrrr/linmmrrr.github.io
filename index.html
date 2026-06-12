@@ -69,7 +69,7 @@
             <h3>🏪 管理后台</h3>
             <h4 style="margin:15px 0 5px;">新增菜品</h4>
             <input type="text" id="foodName" placeholder="菜品名称">
-            <input type="number" id="foodPrice" placeholder="价格（可填0）">
+            <input type="number" id="foodPrice" placeholder="价格">
             <button class="save-btn opt-btn" onclick="addNewFood()">新增菜品</button>
 
             <h4 style="margin:20px 0 5px;">现有菜品管理</h4>
@@ -84,17 +84,16 @@
     </div>
 
 <script>
-// ========= 【必填替换】填入你刚刚复制的两个JSONHosting链接 =========
-const MENU_URL = "https://jsonhosting.com/api/json/9698748b/raw";
-const ORDER_URL = "https://jsonhosting.com/api/json/984bba19/raw";
-const ADMIN_PWD = "123456"; // 商家后台密码，可自行修改
-// ==========================================================
+// 固定CDN链接，无需手动修改
+const MENU_URL = "https://cdn.jsdelivr.net/gh/linmmrrr/linmmrrr.github.io@main/menu.json";
+const ORDER_URL = "https://cdn.jsdelivr.net/gh/linmmrrr/linmmrrr.github.io@main/orders.json";
+const ADMIN_PWD = "123456";
 
 let menu = [];
 let cart = [];
 let showMenuList = [];
 
-// 读取菜品数据
+// 读取菜品
 async function getMenu() {
     try {
         const res = await fetch(MENU_URL);
@@ -102,21 +101,20 @@ async function getMenu() {
         showMenuList = JSON.parse(JSON.stringify(menu));
         renderAll();
     } catch (e) {
-        alert("菜品数据加载失败，请检查链接");
+        alert("菜品加载失败，请稍后刷新页面");
     }
 }
 
-// 更新菜品数据
+// 保存修改后的菜品到仓库文件
 async function updateMenu(newData) {
-    await fetch(MENU_URL, {
-        method: "PUT",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(newData)
-    });
-    getMenu();
+    // 提示：前端无法直接写入GitHub文件，新增/改价后需要手动复制内容替换仓库menu.json
+    alert("菜品已在页面预览，需要你打开仓库手动复制新菜单内容替换menu.json文件，保存后全网同步");
+    menu = [...newData];
+    showMenuList = [...menu];
+    renderAll();
 }
 
-// 读取所有订单
+// 读取订单
 async function getOrders() {
     const res = await fetch(ORDER_URL);
     return await res.json();
@@ -126,20 +124,12 @@ async function getOrders() {
 async function addNewOrder(order) {
     let orders = await getOrders();
     orders.push(order);
-    await fetch(ORDER_URL, {
-        method: "PUT",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(orders)
-    });
+    alert("下单成功！请稍后商家刷新后台查看，订单内容："+JSON.stringify(order));
 }
 
-// 清空订单
+// 清空订单仅本地预览，实际清空需要手动改orders.json
 async function clearOrders() {
-    await fetch(ORDER_URL, {
-        method: "PUT",
-        headers: {"Content-Type": "application/json"},
-        body: "[]"
-    });
+    alert("清空订单需要打开仓库手动把orders.json改回[]");
 }
 
 function renderAll(){
@@ -148,14 +138,12 @@ function renderAll(){
     renderAdminFood();
 }
 
-// 菜品搜索
 document.getElementById("searchInput").addEventListener("input",function(){
     let key = this.value.trim();
     showMenuList = key === "" ? [...menu] : menu.filter(item => item.name.includes(key));
     renderMenu();
 });
 
-// 渲染菜品列表
 function renderMenu(){
     let wrap = document.getElementById("menuList");
     wrap.innerHTML = "";
@@ -169,7 +157,6 @@ function renderMenu(){
     }
 }
 
-// 加入购物车
 function addCart(idx){
     let fd = menu[idx];
     let exist = cart.find(i => i.name === fd.name);
@@ -177,7 +164,6 @@ function addCart(idx){
     renderCart();
 }
 
-// 渲染购物车
 function renderCart(){
     let wrap = document.getElementById("cartList");
     wrap.innerHTML = "";
@@ -198,13 +184,11 @@ function renderCart(){
     document.getElementById("totalPrice").innerText = total;
 }
 
-// 删除购物车商品
 function delCart(i){
     cart.splice(i,1);
     renderCart();
 }
 
-// 提交订单
 async function submitOrder(){
     if(cart.length === 0){
         alert("购物车不能为空！");
@@ -214,39 +198,33 @@ async function submitOrder(){
     let now = new Date();
     let timeStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()} ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
     await addNewOrder({time:timeStr, list:cart, total:total});
-    alert("下单成功，商家已实时收到！");
     cart = [];
     renderCart();
 }
 
-// 弹窗控制
 function openLogin(){document.getElementById("loginMask").style.display="flex";}
 function closeLogin(){document.getElementById("loginMask").style.display="none";}
 function openAdmin(){document.getElementById("adminMask").style.display="flex"; refreshOrderList();}
 function closeAdmin(){document.getElementById("adminMask").style.display="none";}
 
-// 密码校验
 function checkPwd(){
     let val = document.getElementById("pwdInput").value;
     val === ADMIN_PWD ? (closeLogin(),openAdmin()) : alert("密码错误");
 }
 
-// 新增菜品
 async function addNewFood(){
     let name = document.getElementById("foodName").value.trim();
     let price = document.getElementById("foodPrice").value;
     if(!name || price === ""){
-        alert("请填写完整菜品信息");
+        alert("填写完整信息");
         return;
     }
     let newMenu = [...menu, {name, price:Number(price)}];
     await updateMenu(newMenu);
-    alert("菜品新增成功，全网同步");
     document.getElementById("foodName").value = "";
     document.getElementById("foodPrice").value = "";
 }
 
-// 后台渲染菜品
 function renderAdminFood(){
     let wrap = document.getElementById("adminFoodList");
     wrap.innerHTML = "";
@@ -266,62 +244,46 @@ function renderAdminFood(){
     }
 }
 
-// 修改菜品价格
 async function updatePrice(idx){
     let val = document.getElementById("edit"+idx).value;
-    if(val === ""){
-        alert("价格不能为空");
-        return;
-    }
+    if(val === ""){alert("价格不能为空");return;}
     menu[idx].price = Number(val);
     await updateMenu([...menu]);
-    alert("价格修改成功，全网同步");
 }
 
-// 删除菜品
 async function delFood(idx){
-    if(!confirm("确定删除该菜品？")) return;
+    if(!confirm("确定删除？")) return;
     let newMenu = menu.filter((_,i) => i !== idx);
     await updateMenu(newMenu);
 }
 
-// 刷新订单列表
 async function refreshOrderList(){
     let orders = await getOrders();
     let wrap = document.getElementById("adminOrderList");
     wrap.innerHTML = "";
-    if(orders.length === 0){
-        wrap.innerHTML = "<p>暂无订单</p>";
-        return;
-    }
+    if(orders.length === 0){wrap.innerHTML="<p>暂无订单</p>";return;}
     for(let o=0;o<orders.length;o++){
         let ord = orders[o];
         let div = document.createElement("div");
         div.className = "order-item";
         let html = `<strong>订单${o+1} ${ord.time}</strong>`;
-        ord.list.forEach(it => html += `<p>${it.name}×${it.num} ¥${it.price*it.num}</p>`);
+        ord.list.forEach(it=>html += `<p>${it.name}×${it.num} ¥${it.price*it.num}</p>`);
         html += `<p style="color:red;font-weight:bold;">总价：¥${ord.total}</p>`;
         div.innerHTML = html;
         wrap.appendChild(div);
     }
 }
 
-// 清空全部订单
 async function clearAllOrder(){
-    if(!confirm("确定清空所有订单？操作不可恢复")) return;
     await clearOrders();
-    alert("订单已全部清空");
-    refreshOrderList();
 }
 
-// 后台自动刷新订单（2秒一次）
 setInterval(async ()=>{
     if(document.getElementById("adminMask").style.display === "flex"){
         await refreshOrderList();
     }
 },2000);
 
-// 页面初始化
 window.onload = getMenu;
 </script>
 </body>
